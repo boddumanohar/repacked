@@ -31,3 +31,11 @@ this will output
 meaning: 
 2 x 23
 7 x 31
+
+#### start the application
+
+```
+docker-compose up -d --build
+```
+
+you could access the UI at http://localhost:3000
