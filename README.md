@@ -4,7 +4,7 @@ Given the packet sizes, this application can calculate the number of packs we ne
 
 ### start
 
-make dockerrun
+`make dockerrun`
 
 ### Usage
 
@@ -29,8 +29,10 @@ this will output
 ```
 
 meaning: 
+```
 2 x 23
 7 x 31
+```
 
 #### start the application
 
