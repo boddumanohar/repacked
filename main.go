@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,6 +39,16 @@ func postHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"packs": packets.Sizes})
 }
 
+func optionsHandler(c *gin.Context) {
+	// Set CORS headers
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	// Return ok status
+	c.AbortWithStatus(http.StatusOK)
+}
+
 func getHandler(c *gin.Context) {
 	orderSizeStr := c.Query("orderSize")
 	orderSize, err := strconv.Atoi(orderSizeStr)
@@ -65,8 +76,11 @@ func getHandler(c *gin.Context) {
 
 func main() {
 	r := gin.Default()
+	r.Use(cors.Default())
+
 	r.POST("/pack", postHandler)
 	r.GET("/pack", getHandler)
+	r.OPTIONS("/pack", optionsHandler)
 
 	fmt.Println("Server running on :8080")
 	r.Run(":8080")
