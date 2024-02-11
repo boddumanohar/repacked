@@ -4,22 +4,16 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
+	"sync"
+
+	"github.com/gin-gonic/gin"
 )
 
-func maxPackSize(packSizes []int) int {
-	max := 0
-	for _, size := range packSizes {
-		if size > max {
-			max = size
-		}
-	}
-	return max
-}
-
 func packOrder(packSizes []int, orderSize int) []int {
-	sort.Ints(packSizes) // Sort in asc order
+	sort.Ints(packSizes) // Sort pack sizes in ascending order for dynamic programming
 
-	// Initialize Dynamic programming array with max value
+	// Initialize DP array with max value
 	dp := make([]int, orderSize+maxPackSize(packSizes)+1)
 	for i := range dp {
 		dp[i] = math.MaxInt32
@@ -55,16 +49,56 @@ func packOrder(packSizes []int, orderSize int) []int {
 	return bestFitCombination
 }
 
-func main() {
-	packSizes := []int{23, 31, 53}
-	orderSize := 263
-
-	packs := packOrder(packSizes, orderSize)
-	fmt.Printf("Order size %d packed in: ", orderSize)
-	for i, num := range packs {
-		if num > 0 {
-			fmt.Printf("%d x %d ", num, packSizes[i])
+func maxPackSize(packSizes []int) int {
+	max := 0
+	for _, size := range packSizes {
+		if size > max {
+			max = size
 		}
 	}
-	fmt.Println()
+	return max
+}
+
+type Packs struct {
+	sync.Mutex
+	Sizes []int `json:"packSizes"`
+}
+
+var packets Packs
+
+func postHandler(c *gin.Context) {
+	packets.Lock()
+	if err := c.BindJSON(&packets); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	packets.Unlock()
+
+	c.JSON(200, gin.H{"packs": packets.Sizes})
+}
+
+func getHandler(c *gin.Context) {
+	orderSizeStr := c.Query("orderSize")
+	orderSize, err := strconv.Atoi(orderSizeStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid orderSize parameter"})
+		return
+	}
+
+	if len(packets.Sizes) == 0 {
+		c.JSON(400, gin.H{"error": "empty packet sizes"})
+		return
+	}
+
+	packs := packOrder(packets.Sizes, orderSize)
+	c.JSON(200, gin.H{"packs": packs, "packSizes": packets.Sizes})
+}
+
+func main() {
+	r := gin.Default()
+	r.POST("/pack", postHandler)
+	r.GET("/pack", getHandler)
+
+	fmt.Println("Server running on :8080")
+	r.Run(":8080")
 }
