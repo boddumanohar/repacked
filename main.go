@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"sort"
 	"strconv"
 	"sync"
@@ -10,11 +12,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func packOrder(packSizes []int, orderSize int) []int {
+func packOrder(packSizes []int, orderSize int) ([]int, error) {
+	if len(packSizes) == 0 || orderSize < 1 {
+		return nil, errors.New("invalid input: packSizes must be non-empty and orderSize must be positive")
+	}
+
 	sort.Ints(packSizes) // Sort pack sizes in ascending order for dynamic programming
 
-	// Initialize DP array with max value
-	dp := make([]int, orderSize+maxPackSize(packSizes)+1)
+	if orderSize < packSizes[0] {
+		return nil, errors.New("order size is smaller than the smallest pack size")
+	}
+
+	dp := make([]int, orderSize+1)
 	for i := range dp {
 		dp[i] = math.MaxInt32
 	}
@@ -26,7 +35,7 @@ func packOrder(packSizes []int, orderSize int) []int {
 	}
 
 	// Dynamic Programming to find the minimum number of packs
-	for i := 1; i < len(dp); i++ {
+	for i := 1; i <= orderSize; i++ {
 		for j, size := range packSizes {
 			if size <= i && dp[i-size]+1 < dp[i] {
 				dp[i] = dp[i-size] + 1
@@ -36,27 +45,11 @@ func packOrder(packSizes []int, orderSize int) []int {
 		}
 	}
 
-	// Find the combination that fulfills the order size or goes over by the smallest amount
-	bestFit := math.MaxInt32
-	var bestFitCombination []int
-	for i := orderSize; i < len(dp); i++ {
-		if dp[i] != math.MaxInt32 && i-bestFit < 0 {
-			bestFit = i
-			bestFitCombination = bestCombination[i]
-		}
+	if dp[orderSize] == math.MaxInt32 {
+		return nil, errors.New("no combination of packs can satisfy the order size")
 	}
 
-	return bestFitCombination
-}
-
-func maxPackSize(packSizes []int) int {
-	max := 0
-	for _, size := range packSizes {
-		if size > max {
-			max = size
-		}
-	}
-	return max
+	return bestCombination[orderSize], nil
 }
 
 type Packs struct {
@@ -67,31 +60,49 @@ type Packs struct {
 var packets Packs
 
 func postHandler(c *gin.Context) {
-	packets.Lock()
-	if err := c.BindJSON(&packets); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	var tempPacks Packs
+	if err := c.BindJSON(&tempPacks); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	for _, size := range tempPacks.Sizes {
+		if size <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "pack sizes must be positive integers"})
+			return
+		}
+	}
+
+	packets.Lock()
+	packets.Sizes = tempPacks.Sizes
 	packets.Unlock()
 
-	c.JSON(200, gin.H{"packs": packets.Sizes})
+	c.JSON(http.StatusOK, gin.H{"packs": packets.Sizes})
 }
 
 func getHandler(c *gin.Context) {
 	orderSizeStr := c.Query("orderSize")
 	orderSize, err := strconv.Atoi(orderSizeStr)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Invalid orderSize parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid orderSize parameter"})
 		return
 	}
+
+	packets.Lock()
+	defer packets.Unlock()
 
 	if len(packets.Sizes) == 0 {
-		c.JSON(400, gin.H{"error": "empty packet sizes"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "empty packet sizes"})
 		return
 	}
 
-	packs := packOrder(packets.Sizes, orderSize)
-	c.JSON(200, gin.H{"packs": packs, "packSizes": packets.Sizes})
+	packs, err := packOrder(packets.Sizes, orderSize)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"packs": packs, "packSizes": packets.Sizes})
 }
 
 func main() {
