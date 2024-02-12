@@ -40,4 +40,7 @@ meaning:
 docker-compose up -d --build
 ```
 
-you could access the UI at http://localhost:3000
+### deployment
+
+you could access the UI at http://13.58.115.118:3000
+
