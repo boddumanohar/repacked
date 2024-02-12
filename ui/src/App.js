@@ -10,7 +10,7 @@ function App() {
 
   const submitPackSizes = async () => {
     try {
-      const response = await axios.post('http://localhost:8080/pack', { packSizes: packSizes.split(',').map(Number) });
+      const response = await axios.post('http://13.58.115.118:8080/pack', { packSizes: packSizes.split(',').map(Number) });
       alert('Pack sizes updated successfully!');
     } catch (err) {
       setError(err.message);
@@ -19,8 +19,12 @@ function App() {
 
   const calculatePacks = async () => {
     try {
-      const response = await axios.get(`http://localhost:8080/pack?orderSize=${orderSize}`);
-      setPacks(response.data.packs.map((pack, index) => `${pack} X ${response.data.packSizes[index]}`));
+      const response = await axios.get(`http://13.58.115.118:8080/pack?orderSize=${orderSize}`);
+      setPacks(response.data.packs
+        .map((pack, index) => ({ pack, size: response.data.packSizes[index] }))
+        .filter(item => item.pack > 0)
+        .map(item => `${item.pack} X ${item.size}`)
+      );
     } catch (err) {
       setError(err.message);
     }
