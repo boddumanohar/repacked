@@ -15,9 +15,9 @@ func TestPackOrder(t *testing.T) {
 	}{
 		{
 			name:        "Valid input with exact match",
-			packSizes:   []int{5, 10, 20},
-			orderSize:   15,
-			want:        []int{1, 1, 0},
+			packSizes:   []int{250, 500, 1000, 2000},
+			orderSize:   501,
+			want:        []int{1, 1, 0, 0},
 			expectError: false,
 		},
 		{

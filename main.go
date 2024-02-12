@@ -4,12 +4,20 @@ import (
 	"fmt"
 	"net/http"
 	binpacking "repack/lib"
+	"repack/utils"
 	"strconv"
 	"sync"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
+
+var Logger *zap.Logger
+
+func InitializeLogger() {
+	Logger, _ = zap.NewProduction()
+}
 
 type Packs struct {
 	sync.Mutex
@@ -75,6 +83,7 @@ func getHandler(c *gin.Context) {
 }
 
 func main() {
+	utils.InitializeLogger()
 	r := gin.Default()
 	r.Use(cors.Default())
 
