@@ -2,10 +2,15 @@ package binpacking
 
 import (
 	"reflect"
+	"repack/utils"
 	"testing"
 )
 
 func TestPackOrder(t *testing.T) {
+	// init logger
+	utils.InitializeLogger()
+
+	// setup tests
 	tests := []struct {
 		name        string
 		packSizes   []int

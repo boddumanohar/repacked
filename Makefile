@@ -12,3 +12,6 @@ dockerrun: docker
 
 test:
 	go test -v ./...
+
+cov:
+	go test ./... -cover
