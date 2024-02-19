@@ -26,7 +26,8 @@ function App() {
         .map(item => `${item.pack} X ${item.size}`)
       );
     } catch (err) {
-      setError(err.message);
+      const errorMessage = JSON.parse(err.request.response)
+      setError(`Error: ${err.response.status} - ${errorMessage.error}`);
     }
   };
 
