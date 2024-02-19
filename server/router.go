@@ -1,13 +1,16 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
 
 	binpacking "repack/lib"
+	"repack/utils"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Packs struct {
@@ -23,6 +26,8 @@ func postHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	utils.Logger.Info("", zap.String("packs", fmt.Sprintf("%v", tempPacks.Sizes)))
 
 	for _, size := range tempPacks.Sizes {
 		if size <= 0 {
