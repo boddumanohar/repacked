@@ -61,6 +61,11 @@ func getHandler(c *gin.Context) {
 		return
 	}
 
+	if orderSize > 1000000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid orderSize: orderSize should not exceed: 1,000,000"})
+		return
+	}
+
 	packets.Lock()
 	defer packets.Unlock()
 
